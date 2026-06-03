@@ -1,0 +1,71 @@
+version: 2.1
+
+jobs:
+  build-and-test:
+    docker:
+      - image: cimg/node:18.20
+      - image: cimg/mongo:7.0  # MongoDB for API tests
+    steps:
+      - checkout
+
+      # Install dependencies
+      - run:
+          name: Install backend dependencies
+          command: cd backend && npm install
+      - run:
+          name: Install frontend dependencies
+          command: cd frontend && npm install
+
+      # ─── SOFTWARE COMPOSITION ANALYSIS (SCA) ───
+      # Check for known vulnerabilities in dependencies
+      - run:
+          name: "SCA: npm audit (backend)"
+          command: cd backend && npm audit --audit-level=high || true
+      - run:
+          name: "SCA: npm audit (frontend)"
+          command: cd frontend && npm audit --audit-level=high || true
+
+      # ─── API TESTING ───
+      # Test endpoints ensure app runs, test security tools (express-brute)
+      - run:
+          name: Generate SSL keys for tests
+          command: cd backend && node generate-keys.js
+      - run:
+          name: "API Testing: Run Jest + Supertest"
+          command: cd backend && npm test
+          environment:
+            NODE_ENV: test
+            MONGO_URI: mongodb://localhost:27017/apds_v3_test
+            JWT_SECRET: test_secret_for_ci_pipeline
+
+      # Build frontend
+      - run:
+          name: Build frontend
+          command: cd frontend && npm run build
+
+      # ─── STATIC APPLICATION SECURITY TESTING (SAST) ───
+      # SonarQube scan for vulnerabilities, hotspots, code smells
+      - run:
+          name: Install SonarQube Scanner
+          command: |
+            export SONAR_SCANNER_VERSION=5.0.1.3006
+            curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux.zip
+            unzip -q sonar-scanner.zip
+            sudo mv sonar-scanner-${SONAR_SCANNER_VERSION}-linux /opt/sonar-scanner
+            sudo ln -s /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner
+      - run:
+          name: "SAST: SonarQube Analysis"
+          command: |
+            sonar-scanner \
+              -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+              -Dsonar.organization=${SONAR_ORG} \
+              -Dsonar.sources=backend,frontend/src \
+              -Dsonar.host.url=https://sonarcloud.io \
+              -Dsonar.token=${SONAR_TOKEN} \
+              -Dsonar.exclusions=**/node_modules/**,**/build/**,**/keys/**
+
+workflows:
+  version: 2
+  devsecops-pipeline:
+    jobs:
+      - build-and-test

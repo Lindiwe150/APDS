@@ -1,0 +1,218 @@
+═══════════════════════════════════════════════════════════════════════════════
+APDS v3 — VIDEO SCRIPT (OBS Recording)
+Upload as UNLISTED to YouTube
+Estimated Duration: 8–10 minutes
+═══════════════════════════════════════════════════════════════════════════════
+
+───────────────────────────────────────────────────────────────────────────────
+INTRO [0:00 – 0:30]
+───────────────────────────────────────────────────────────────────────────────
+
+"Hi, this is the demonstration video for APDS Task 3 — the Secure Employee
+International Payments Portal for Chauke Ndlovu International Bank.
+
+I'll be showing:
+1. The HTTPS/SSL setup
+2. Static login with no registration
+3. Customer payment flow
+4. Employee verification and SWIFT submission
+5. Input validation and security features
+6. The DevSecOps pipeline with CircleCI and SonarQube"
+
+───────────────────────────────────────────────────────────────────────────────
+SECTION 1: HTTPS/SSL [0:30 – 1:30]
+───────────────────────────────────────────────────────────────────────────────
+
+ACTION: Open browser, navigate to https://localhost:3001
+
+NARRATE:
+"The application runs entirely over HTTPS. You can see the padlock icon
+in the address bar."
+
+ACTION: Click the padlock → show certificate details
+
+NARRATE:
+"This is a self-signed RSA 2048-bit certificate generated with OpenSSL.
+All traffic between the browser and server is encrypted — protecting
+against man-in-the-middle attacks."
+
+ACTION: Show the URL bar says "https://" — no HTTP version exists
+
+───────────────────────────────────────────────────────────────────────────────
+SECTION 2: STATIC LOGIN — NO REGISTRATION [1:30 – 2:30]
+───────────────────────────────────────────────────────────────────────────────
+
+ACTION: Show the login page
+
+NARRATE:
+"Notice there is no 'Register' link or button anywhere. Users cannot
+create their own accounts — all accounts are pre-configured by an
+administrator using the seed script."
+
+ACTION: Try navigating to /register manually in the URL bar
+
+NARRATE:
+"Even if someone tries to access a registration page directly, it
+redirects to login. There is no registration API endpoint either —
+our tests confirm it returns a 404."
+
+ACTION: Log in as customer — JohnN / 2067891234 / John@2024!
+
+NARRATE:
+"I'm logging in with a pre-configured customer account. The password
+is hashed with bcrypt using 12 salt rounds."
+
+───────────────────────────────────────────────────────────────────────────────
+SECTION 3: CUSTOMER PAYMENT FLOW [2:30 – 4:00]
+───────────────────────────────────────────────────────────────────────────────
+
+ACTION: Show the payment form
+
+NARRATE:
+"As a customer, I can make international payments. The form requires:
+- Amount (numeric, up to 2 decimal places)
+- Currency (ZAR, USD, EUR, or GBP)
+- Provider (SWIFT only)
+- Payee account in IBAN format
+- SWIFT/BIC code"
+
+ACTION: Fill in valid payment:
+  Amount: 15000.00
+  Currency: ZAR
+  Payee Account: GB29NWBK60161331926819
+  SWIFT Code: NWBKGB2L
+
+ACTION: Submit → show success message
+
+NARRATE:
+"Payment submitted successfully. This is now pending in the system,
+waiting for an employee to verify it."
+
+───────────────────────────────────────────────────────────────────────────────
+SECTION 4: INPUT VALIDATION / WHITELISTING [4:00 – 5:30]
+───────────────────────────────────────────────────────────────────────────────
+
+ACTION: Try submitting invalid data:
+  - Amount: "abc" or "-100"
+  - Payee Account: "invalid_iban"
+  - SWIFT Code: "123"
+
+NARRATE:
+"All input is whitelisted using RegEx patterns. The validation happens
+on BOTH the client side and the server side — this is defence in depth.
+
+Even if someone bypasses the frontend validation using developer tools
+or Postman, the server will still reject invalid input."
+
+ACTION: Show the error messages for each invalid field
+
+NARRATE:
+"This protects against:
+- XSS attacks (no script tags allowed)
+- NoSQL injection (no special MongoDB operators)
+- Any malformed data"
+
+───────────────────────────────────────────────────────────────────────────────
+SECTION 5: EMPLOYEE PORTAL [5:30 – 7:00]
+───────────────────────────────────────────────────────────────────────────────
+
+ACTION: Logout → Login as employee: Lindiwe / 1054083600 / Lindiwe@0701
+
+NARRATE:
+"Now I'm logging in as an employee. Employees have a different view —
+the transaction verification portal."
+
+ACTION: Show the transactions table with the payment from earlier
+
+NARRATE:
+"Here I can see the payment that JohnN just submitted. It shows the
+customer name, amount, currency, IBAN, SWIFT code, and status."
+
+ACTION: Click "Verify" on the transaction
+
+NARRATE:
+"I've verified the transaction. The status changes from PENDING to
+VERIFIED."
+
+ACTION: Click "Submit to SWIFT"
+
+NARRATE:
+"Now I'm submitting all verified transactions to SWIFT. In a real
+system this would connect to the SWIFT network — here it updates
+the status to SUBMITTED."
+
+───────────────────────────────────────────────────────────────────────────────
+SECTION 6: RATE LIMITING / BRUTE FORCE PROTECTION [7:00 – 7:45]
+───────────────────────────────────────────────────────────────────────────────
+
+ACTION: Logout → Try logging in with wrong password multiple times
+
+NARRATE:
+"The application has two layers of brute force protection:
+1. express-rate-limit — blocks after 10 attempts in 15 minutes
+2. express-brute — locks out after 5 failed attempts per IP
+
+Watch what happens when I spam incorrect passwords..."
+
+ACTION: Show the "Too many attempts" error message
+
+NARRATE:
+"The account is now temporarily locked. This prevents attackers from
+guessing passwords."
+
+───────────────────────────────────────────────────────────────────────────────
+SECTION 7: DEVSECOPS PIPELINE [7:45 – 9:30]
+───────────────────────────────────────────────────────────────────────────────
+
+ACTION: Open CircleCI dashboard in browser → show the pipeline
+
+NARRATE:
+"The project has a full DevSecOps pipeline on CircleCI that triggers
+on every push to GitHub. It runs three types of security checks:"
+
+ACTION: Show pipeline steps expanding each one
+
+NARRATE:
+"1. SOFTWARE COMPOSITION ANALYSIS — npm audit checks all our
+   dependencies for known CVE vulnerabilities.
+
+2. API TESTING — Jest and Supertest run 11 automated tests that
+   verify all endpoints work correctly and security is enforced.
+   This includes testing that express-brute is active and that
+   invalid input is rejected.
+
+3. STATIC APPLICATION TESTING — SonarQube scans the entire codebase
+   for security hotspots, code smells, and vulnerabilities."
+
+ACTION: Open SonarCloud → show the project dashboard (hotspots, code smells)
+
+NARRATE:
+"Here's the SonarQube report showing the analysis results — any
+security hotspots or code smells are flagged here for review."
+
+───────────────────────────────────────────────────────────────────────────────
+CONCLUSION [9:30 – 10:00]
+───────────────────────────────────────────────────────────────────────────────
+
+NARRATE:
+"To summarise, this application implements:
+- HTTPS/SSL encryption on all traffic
+- Password hashing with bcrypt (12 rounds)
+- Input whitelisting with RegEx on client and server
+- No registration — static pre-configured accounts
+- Protection against XSS, clickjacking, DDoS, brute force,
+  injection, session hijacking, and MIME sniffing
+- A full DevSecOps pipeline with SAST, SCA, and API testing
+
+Thank you for watching."
+
+═══════════════════════════════════════════════════════════════════════════════
+END OF VIDEO SCRIPT
+═══════════════════════════════════════════════════════════════════════════════
+
+RECORDING TIPS:
+- Use OBS Studio (free) — https://obsproject.com
+- Resolution: 1920x1080, 30fps
+- Record browser + terminal side by side
+- Upload as UNLISTED to YouTube
+- Share the link in your submission

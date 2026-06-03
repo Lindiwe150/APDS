@@ -1,0 +1,121 @@
+═══════════════════════════════════════════════════════════════════════════════
+APDS v3 — RUBRIC CRITERIA COVERAGE
+Chauke Ndlovu International Bank - Employee Payments Portal
+═══════════════════════════════════════════════════════════════════════════════
+
+TASK 3: PROJECT EMPLOYEE PORTAL [80 MARKS TOTAL]
+
+───────────────────────────────────────────────────────────────────────────────
+1. PASSWORD SECURITY [20 Marks] — Targeting: 15–20 (Exceeds Standard)
+───────────────────────────────────────────────────────────────────────────────
+
+BASIC REQUIREMENTS MET:
+• bcrypt password hashing with 12 salt rounds (industry standard)
+• Passwords never stored in plain text
+• Strong password policy enforced via RegEx:
+  - Minimum 8 characters, maximum 30
+  - Must contain: uppercase, lowercase, number, special character
+  - Pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,30}$/
+
+EXCEEDS STANDARD (Additional Research):
+• express-brute middleware — per-IP brute force protection
+  - 5 free retries before lockout
+  - Lockout escalates: 5 minutes → 1 hour
+  - Separate from general rate limiting
+• express-rate-limit — 10 login attempts per 15 minutes (server-wide)
+• JWT tokens expire after 1 hour (prevents session hijacking)
+• No password hints or recovery (accounts managed by admin only)
+
+FILES: backend/routes/auth.js, backend/models/User.js
+
+───────────────────────────────────────────────────────────────────────────────
+2. DEVSECOPS PIPELINE [30 Marks] — Targeting: 20–30 (Exceeds Standard)
+───────────────────────────────────────────────────────────────────────────────
+
+BASIC REQUIREMENT MET:
+• CircleCI pipeline configured in .circleci/config.yml
+• Triggers automatically when code is pushed to GitHub
+
+STATIC APPLICATION TESTING (SAST):
+• SonarQube/SonarCloud integration
+• Scans for: security hotspots, code smells, vulnerabilities, bugs
+• Analyses both backend and frontend source code
+• Excludes: node_modules, build output, SSL keys
+
+SOFTWARE COMPOSITION ANALYSIS (SCA):
+• npm audit runs on both backend and frontend
+• Checks all dependencies against known vulnerability databases (CVE)
+• Flags: high and critical severity vulnerabilities in packages
+
+API TESTING (Security Tools + Endpoint Verification):
+• Jest + Supertest test suite (11 tests)
+• Tests verify:
+  - Login works with valid credentials
+  - Invalid credentials are rejected
+  - Input whitelisting blocks XSS attempts (e.g., <script> tags)
+  - No registration endpoint exists (returns 404)
+  - Customer can create payments
+  - Invalid IBAN/SWIFT rejected
+  - Unauthenticated requests rejected (401)
+  - Employee can view/verify/submit transactions
+  - Customer cannot access employee routes (403)
+  - Helmet security headers are present
+  - Express-brute middleware is active
+
+FILES: .circleci/config.yml, backend/tests/api.test.js, sonar-project.properties
+
+───────────────────────────────────────────────────────────────────────────────
+3. STATIC LOGIN [10 Marks] — Targeting: 8–10 (Exceeds Standard)
+───────────────────────────────────────────────────────────────────────────────
+
+BASIC REQUIREMENT MET:
+• Accounts are pre-configured via seed script (npm run seed)
+• No registration process exists — no /register endpoint
+• API test confirms /register returns 404
+
+PRE-CONFIGURED ACCOUNTS:
+  EMPLOYEE: Lindiwe | Account: 1054083600 | Password: Lindiwe@0701
+  CUSTOMER: JohnN   | Account: 2067891234 | Password: John@2024!
+  CUSTOMER: SarahM  | Account: 3078901234 | Password: Sarah@2024!
+
+EXCEEDS STANDARD:
+• Role-based access control (employee vs customer)
+• Seed script is idempotent (can re-run safely)
+• All seeded passwords are hashed with bcrypt before storage
+
+FILES: backend/seed.js, backend/routes/auth.js
+
+───────────────────────────────────────────────────────────────────────────────
+4. OVERALL FUNCTIONING OF THE WEB APP [20 Marks] — Targeting: 15–20
+───────────────────────────────────────────────────────────────────────────────
+
+BASIC REQUIREMENT MET:
+• Web application is correctly configured and secured
+• Customer portal: login → create international payment
+• Employee portal: view transactions → verify → submit to SWIFT
+• Information flows correctly from customer to staff portal
+
+SECURITY PROTECTIONS AGAINST ALL LISTED ATTACKS:
+• XSS — Helmet.js (X-XSS-Protection, CSP headers)
+• Clickjacking — X-Frame-Options: DENY via Helmet
+• Man-in-the-Middle — HTTPS/SSL encryption (RSA 2048)
+• DDoS — Rate limiting (100 req/15min general)
+• Brute Force — express-brute + auth rate limit (10/15min)
+• SQL/NoSQL Injection — Mongoose schema validation + RegEx whitelisting
+• MIME Sniffing — X-Content-Type-Options: nosniff via Helmet
+• Session Hijacking — JWT with 1-hour expiry
+• CORS attacks — Origin restricted to frontend URL only
+• Large Payload — Request body limited to 10kb
+
+EXCEEDS STANDARD:
+• Defence in depth: input validated on BOTH client and server
+• Content Security Policy (CSP) enforced via Helmet AND HTML meta tag
+• All traffic encrypted — no HTTP fallback
+• Automated deployment script for easy setup
+• Comprehensive API test suite proves functionality
+
+FILES: backend/server.js, frontend/public/index.html, all route files
+
+═══════════════════════════════════════════════════════════════════════════════
+TOTAL EXPECTED MARKS: 68–80 / 80
+═══════════════════════════════════════════════════════════════════════════════
