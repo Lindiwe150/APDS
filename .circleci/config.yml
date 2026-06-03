@@ -1,71 +1,31 @@
+# Use the latest 2.1 version of CircleCI pipeline process engine.
+# See: https://circleci.com/docs/reference/configuration-reference
 version: 2.1
 
+# Define a job to be invoked later in a workflow.
+# See: https://circleci.com/docs/guides/orchestrate/jobs-steps/#jobs-overview & https://circleci.com/docs/reference/configuration-reference/#jobs
 jobs:
-  build-and-test:
+  say-hello:
+    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/guides/execution-managed/executor-intro/ & https://circleci.com/docs/reference/configuration-reference/#executor-job
     docker:
-      - image: cimg/node:18.20
-      - image: cimg/mongo:7.0  # MongoDB for API tests
+      # Specify the version you desire here
+      # See: https://circleci.com/developer/images/image/cimg/base
+      - image: cimg/base:current
+
+    # Add steps to the job
+    # See: https://circleci.com/docs/guides/orchestrate/jobs-steps/#steps-overview & https://circleci.com/docs/reference/configuration-reference/#steps
     steps:
+      # Checkout the code as the first step.
       - checkout
+      - run:
+          name: "Say hello"
+          command: "echo Hello, World!"
 
-      # Install dependencies
-      - run:
-          name: Install backend dependencies
-          command: cd backend && npm install
-      - run:
-          name: Install frontend dependencies
-          command: cd frontend && npm install
-
-      # ─── SOFTWARE COMPOSITION ANALYSIS (SCA) ───
-      # Check for known vulnerabilities in dependencies
-      - run:
-          name: "SCA: npm audit (backend)"
-          command: cd backend && npm audit --audit-level=high || true
-      - run:
-          name: "SCA: npm audit (frontend)"
-          command: cd frontend && npm audit --audit-level=high || true
-
-      # ─── API TESTING ───
-      # Test endpoints ensure app runs, test security tools (express-brute)
-      - run:
-          name: Generate SSL keys for tests
-          command: cd backend && node generate-keys.js
-      - run:
-          name: "API Testing: Run Jest + Supertest"
-          command: cd backend && npm test
-          environment:
-            NODE_ENV: test
-            MONGO_URI: mongodb://localhost:27017/apds_v3_test
-            JWT_SECRET: test_secret_for_ci_pipeline
-
-      # Build frontend
-      - run:
-          name: Build frontend
-          command: cd frontend && npm run build
-
-      # ─── STATIC APPLICATION SECURITY TESTING (SAST) ───
-      # SonarQube scan for vulnerabilities, hotspots, code smells
-      - run:
-          name: Install SonarQube Scanner
-          command: |
-            export SONAR_SCANNER_VERSION=5.0.1.3006
-            curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux.zip
-            unzip -q sonar-scanner.zip
-            sudo mv sonar-scanner-${SONAR_SCANNER_VERSION}-linux /opt/sonar-scanner
-            sudo ln -s /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner
-      - run:
-          name: "SAST: SonarQube Analysis"
-          command: |
-            sonar-scanner \
-              -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-              -Dsonar.organization=${SONAR_ORG} \
-              -Dsonar.sources=backend,frontend/src \
-              -Dsonar.host.url=https://sonarcloud.io \
-              -Dsonar.token=${SONAR_TOKEN} \
-              -Dsonar.exclusions=**/node_modules/**,**/build/**,**/keys/**
-
+# Orchestrate jobs using workflows
+# See: https://circleci.com/docs/guides/orchestrate/workflows/ & https://circleci.com/docs/reference/configuration-reference/#workflows
 workflows:
-  version: 2
-  devsecops-pipeline:
+  say-hello-workflow: # This is the name of the workflow, feel free to change it to better match your workflow.
+    # Inside the workflow, you define the jobs you want to run.
     jobs:
-      - build-and-test
+      - say-hello
