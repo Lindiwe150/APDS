@@ -4,7 +4,7 @@ jobs:
   build-and-test:
     docker:
       - image: cimg/node:18.20
-      - image: cimg/mongo:7.0  # MongoDB for API tests
+      - image: mongo:7.0  # MongoDB for API tests
     steps:
       - checkout
 
